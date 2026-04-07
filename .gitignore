@@ -1,4 +1,9 @@
-dataset/
+#dataset/
+# ignore all files in dataset
+dataset/*
+# but keep gitignore itself
+!dataset/.gitignore
+!dataset/.gitkeep
 datasets/
 *.npz
 *.pt
