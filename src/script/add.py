@@ -177,9 +177,9 @@ def get_edge_statistics(npz_path):
 # Main function
 def main():
     # File path configuration
-    filtered_npz = "clean_dataset_new/Amazon_filtered.npz"
-    merged_json = "merged_json/Amazon_cosine_similarity_merged_5.json"
-    final_npz = "clean_dataset_new/Amazon_final_5.npz"
+    filtered_npz = "../../dataset/Amazon_filtered.npz"
+    merged_json = "../data/merged_json/Amazon_cosine_similarity_cleaned.json"
+    final_npz = "../../dataset/Amazon_final.npz"
     
     # Check whether input files exist
     if not os.path.exists(filtered_npz):
