@@ -1,0 +1,9 @@
+dataset/
+datasets/
+*.npz
+*.pt
+*.pth
+*.bin
+*.ckpt
+__pycache__/
+*.pyc
