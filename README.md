@@ -133,7 +133,7 @@ Then train fusion GNN:
 ```bash
 python src/model/gnns_fuse_add.py \
   --data-orig dataset/Cornell.npz \
-  --data-clean dataset/Cornell_final.npz \
+  --data-enhanced dataset/Cornell_final.npz \
   --model sage \
   --epochs 400 \
   --device cuda

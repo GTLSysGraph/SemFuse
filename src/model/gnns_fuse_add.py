@@ -470,30 +470,30 @@ def build_encoder(
 
 # ==================== Training and Evaluation ====================
 
-def train_one_epoch(encoder_orig, encoder_clean, classifier, 
-                   x, edge_orig, edge_clean, y, train_mask, optimizer, args):
+def train_one_epoch(encoder_orig, encoder_enhanced, classifier, 
+                   x, edge_orig, edge_enhanced, y, train_mask, optimizer, args):
     """Train one epoch"""
     encoder_orig.train()
-    encoder_clean.train()
+    encoder_enhanced.train()
     classifier.train()
     
     optimizer.zero_grad()
     
     # Encode both views
     emb_orig = encoder_orig(x, edge_orig)
-    emb_clean = encoder_clean(x, edge_clean)
+    emb_enhanced = encoder_enhanced(x, edge_enhanced)
     
     # Simple additive fusion
-    fused_emb = emb_orig + emb_clean
+    fused_emb = emb_orig + emb_enhanced
     
     # Classification
     logits = classifier(fused_emb)
     
     # Compute losses
     masks = {'train': train_mask}
-    edge_indices = [edge_orig, edge_clean]
+    edge_indices = [edge_orig, edge_enhanced]
     total_loss, loss_cls, loss_smooth, loss_view = compute_losses(
-        logits, y, masks, [emb_orig, emb_clean], edge_indices,
+        logits, y, masks, [emb_orig, emb_enhanced], edge_indices,
         lambda_smooth=args.lambda_smooth,
         lambda_view=args.lambda_view
     )
@@ -505,16 +505,16 @@ def train_one_epoch(encoder_orig, encoder_clean, classifier,
 
 
 @torch.no_grad()
-def eval_metrics(encoder_orig, encoder_clean, classifier, 
-                x, edge_orig, edge_clean, y, mask):
+def eval_metrics(encoder_orig, encoder_enhanced, classifier, 
+                x, edge_orig, edge_enhanced, y, mask):
     """Evaluate model"""
     encoder_orig.eval()
-    encoder_clean.eval()
+    encoder_enhanced.eval()
     classifier.eval()
     
     emb_orig = encoder_orig(x, edge_orig)
-    emb_clean = encoder_clean(x, edge_clean)
-    fused_emb = emb_orig + emb_clean
+    emb_enhanced = encoder_enhanced(x, edge_enhanced)
+    fused_emb = emb_orig + emb_enhanced
     logits = classifier(fused_emb)
     
     pred = logits.argmax(dim=-1)
@@ -533,7 +533,7 @@ def set_seed(seed: int):
     torch.cuda.manual_seed_all(seed)
 
 
-def run_single_seed(seed, args, x, edge_orig, edge_clean, y, train_mask, val_mask, test_mask, 
+def run_single_seed(seed, args, x, edge_orig, edge_enhanced, y, train_mask, val_mask, test_mask, 
                    in_dim, num_classes, device):
     """Run experiment for a single seed"""
     print(f"\n{'='*60}")
@@ -547,7 +547,7 @@ def run_single_seed(seed, args, x, edge_orig, edge_clean, y, train_mask, val_mas
         args.heads, args.attn_dropout, not args.no_self_loops, args.use_bn
     ).to(device)
     
-    encoder_clean = build_encoder(
+    encoder_enhanced = build_encoder(
         args.model, in_dim, args.hidden, args.layers, args.dropout,
         args.heads, args.attn_dropout, not args.no_self_loops, args.use_bn
     ).to(device)
@@ -555,7 +555,7 @@ def run_single_seed(seed, args, x, edge_orig, edge_clean, y, train_mask, val_mas
     classifier = nn.Linear(args.hidden, num_classes).to(device)
     
     # Optimizer
-    all_params = (list(encoder_orig.parameters()) + list(encoder_clean.parameters()) +
+    all_params = (list(encoder_orig.parameters()) + list(encoder_enhanced.parameters()) +
                   list(classifier.parameters()))
     optimizer = torch.optim.Adam(all_params, lr=args.lr, weight_decay=args.weight_decay)
     
@@ -565,14 +565,14 @@ def run_single_seed(seed, args, x, edge_orig, edge_clean, y, train_mask, val_mas
     
     for epoch in range(1, args.epochs + 1):
         loss, loss_cls, loss_smooth, loss_view = train_one_epoch(
-            encoder_orig, encoder_clean, classifier,
-            x, edge_orig, edge_clean, y, train_mask, optimizer, args
+            encoder_orig, encoder_enhanced, classifier,
+            x, edge_orig, edge_enhanced, y, train_mask, optimizer, args
         )
         
-        val_acc = eval_metrics(encoder_orig, encoder_clean, classifier,
-                               x, edge_orig, edge_clean, y, val_mask)
-        test_acc = eval_metrics(encoder_orig, encoder_clean, classifier,
-                                x, edge_orig, edge_clean, y, test_mask)
+        val_acc = eval_metrics(encoder_orig, encoder_enhanced, classifier,
+                               x, edge_orig, edge_enhanced, y, val_mask)
+        test_acc = eval_metrics(encoder_orig, encoder_enhanced, classifier,
+                                x, edge_orig, edge_enhanced, y, test_mask)
         
         if val_acc > best_val:
             best_val = val_acc
@@ -600,7 +600,7 @@ def parse_args():
     
     # Data settings
     p.add_argument("--data-orig", type=str, required=True, help="Path to original graph .npz")
-    p.add_argument("--data-clean", type=str, required=True, help="Path to cleaned graph .npz")
+    p.add_argument("--data-enhanced", type=str, required=True, help="Path to enhanced graph .npz")
     p.add_argument("--transpose-edges", action="store_true", help="Transpose edges if [E,2]")
     p.add_argument("--no-make-undirected", action="store_false", dest="make_undirected", 
                    default=True, help="Disable making graph undirected")
@@ -648,7 +648,7 @@ def main():
     print(f"Fusion method: Simple Addition")
     print(f"Device: {device}")
     print(f"Original data: {args.data_orig}")
-    print(f"Cleaned data: {args.data_clean}")
+    print(f"Enhanced data: {args.data_enhanced}")
     
     # Load original graph data
     print(f"\nLoading original graph...")
@@ -658,20 +658,20 @@ def main():
         make_undirected=args.make_undirected
     )
     
-    # Load cleaned graph data
-    print(f"Loading cleaned graph...")
-    x_clean, edge_clean, y_clean, train_mask_clean, val_mask_clean, test_mask_clean = load_npz(
-        args.data_clean, device=device,
+    # Load enhanced graph data
+    print(f"Loading enhanced graph...")
+    x_enhanced, edge_enhanced, y_enhanced, train_mask_enhanced, val_mask_enhanced, test_mask_enhanced = load_npz(
+        args.data_enhanced, device=device,
         transpose_edges=args.transpose_edges,
         make_undirected=args.make_undirected
     )
     
     # Validate data consistency
-    assert torch.equal(x_orig, x_clean), "Node features must be identical"
-    assert torch.equal(y_orig, y_clean), "Node labels must be identical"
-    assert torch.equal(train_mask_orig, train_mask_clean), "Train masks must be identical"
-    assert torch.equal(val_mask_orig, val_mask_clean), "Val masks must be identical"
-    assert torch.equal(test_mask_orig, test_mask_clean), "Test masks must be identical"
+    assert torch.equal(x_orig, x_enhanced), "Node features must be identical"
+    assert torch.equal(y_orig, y_enhanced), "Node labels must be identical"
+    assert torch.equal(train_mask_orig, train_mask_enhanced), "Train masks must be identical"
+    assert torch.equal(val_mask_orig, val_mask_enhanced), "Val masks must be identical"
+    assert torch.equal(test_mask_orig, test_mask_enhanced), "Test masks must be identical"
     
     # Use features and labels from the original graph
     x = x_orig
@@ -688,8 +688,8 @@ def main():
     print(f"  Features: {in_dim}")
     print(f"  Classes: {num_classes}")
     print(f"  Original edges: {edge_orig.size(1)}")
-    print(f"  Cleaned edges: {edge_clean.size(1)}")
-    print(f"  Edge difference: {edge_clean.size(1) - edge_orig.size(1)}")
+    print(f"  Enhanced edges: {edge_enhanced.size(1)}")
+    print(f"  Edge difference: {edge_enhanced.size(1) - edge_orig.size(1)}")
     print(f"  Train/Val/Test: {train_mask.sum()}/{val_mask.sum()}/{test_mask.sum()}")
     
     print(f"\nModel configuration:")
@@ -713,7 +713,7 @@ def main():
     
     for seed in args.seeds:
         val_acc, test_acc = run_single_seed(
-            seed, args, x, edge_orig, edge_clean, y, 
+            seed, args, x, edge_orig, edge_enhanced, y, 
             train_mask, val_mask, test_mask,
             in_dim, num_classes, device
         )
