@@ -1,12 +1,8 @@
-# SemFuse: LLM-Guided Semantic Edge Refinement for Graph Fusion
+# SemFuse: Aligning LLM Semantics with Graph Topology for Heterophilic Learning
 
-## 📰 News
+## 💡 What is SemFuse?
 
-- 🚩 Updates (2026-04-07) Initial open-source README with full end-to-end pipeline.
-
-## 🤔 What is SemFuse?
-
-**SemFuse** is a semantic graph enhancement pipeline for node classification.
+**SemFuse** is a semantic graph enhancement pipeline for **heterophilic graph learning** and node classification.
 
 It uses an LLM to:
 - score existing edges and remove low-relevance connections,
@@ -17,7 +13,7 @@ Finally, SemFuse trains a **multi-view GNN** that fuses original and refined gra
 
 ![SemFuse](images/SemFuse.png)
 
-## 👋🏻 Method Overview
+## 🧠 Method Overview
 
 The workflow has two stages:
 
@@ -27,18 +23,50 @@ The workflow has two stages:
 - `clean_json.py`: parse LLM JSON outputs.
 - `del.py`: drop low-score edges to get a filtered graph.
 - `get_similar.py`: retrieve top-k non-edge cosine-similar node pairs.
-- `llm_infer.py` (second pass): score candidate edges.
 - `merge_json.py`: merge candidate metadata and LLM scores.
 - `add.py`: add high-score candidate edges to build final graph.
 
 2. **Graph model training**
 - `model/gnns_fuse_add.py` (or `gnns_fuse_attention.py`) trains a two-view GNN on original + refined graphs.
 
-## 🏃‍♂️‍➡️ Quick Start
+Main project structure:
+
+```text
+SemFuse
+├── README.md
+├── requirements.txt
+├── dataset/
+├── images/
+└── src
+    ├── llm
+    │   ├── train.sh
+    │   └── llama_factory/
+    ├── model
+    │   ├── gnns_fuse_add.py
+    │   ├── gnns_fuse_attention.py
+    │   └── gnns_original.py
+    └── script
+        ├── construct_edge_json.py
+        ├── llm_infer.py
+        ├── clean_json.py
+        ├── del.py
+        ├── get_similar.py
+        ├── merge_json.py
+        └── add.py
+```
+
+## ⚙️ Quick Start
 
 ### 📁 1) Data preparation
 
-Put dataset `.npz` files into `dataset/`.
+Pull dataset files with Git LFS:
+
+```bash
+git lfs install
+git lfs pull
+```
+
+Then ensure dataset `.npz` files are in `dataset/`.
 
 Expected keys in each `.npz`:
 - `node_texts`
@@ -47,25 +75,12 @@ Expected keys in each `.npz`:
 - `edges` (shape `[2, E]`)
 - `train_masks`, `val_masks`, `test_masks`
 
-Example layout:
-
-```text
-SemFuse
-├── dataset
-│   ├── Cornell.npz
-│   ├── Wisconsin.npz
-│   ├── Texas.npz
-│   ├── Actor.npz
-│   └── Amazon.npz
-└── src
-```
-
-### 🧩 2) Environment setup
+### 🧭 2) Environment setup
 
 ```bash
 conda create -n semfuse python=3.10 -y
 conda activate semfuse
-pip install torch numpy scikit-learn tqdm vllm peft
+pip install -r requirements.txt
 ```
 
 For LLM fine-tuning, install dependencies in `src/llm/llama_factory`:
@@ -88,7 +103,7 @@ Edit these files before running:
   - set `lora_path`
   - set `input_path` / `output_path` for each phase
 
-### 🐹 4) Run the SemFuse pipeline
+### 🚀 4) Run the SemFuse pipeline
 
 From repo root (`SemFuse/`) execute:
 
@@ -117,7 +132,7 @@ python get_similar.py
 # Step 7: LLM inference on candidate edges (edit llm_infer.py input/output first)
 python llm_infer.py
 
-# Step 8: lean LLM JSON outputs
+# Step 8: Clean LLM JSON outputs
 python clean_json.py
 
 # Step 9: Merge candidate metadata and LLM outputs
@@ -139,13 +154,9 @@ python src/model/gnns_fuse_add.py \
   --device cuda
 ```
 
-## ⚠️ Notes
-
-- In your message, `cpmstrict_edge_json.py` appears to be a typo; the repo file is `construct_edge_json.py`.
-- Your sequence has duplicate step number `6`; the second one should be step `7`.
-- Several scripts currently contain hard-coded dataset names/paths (e.g., `Amazon`, `Cornell`). Please edit those constants for your target dataset before running.
 
 ## 🙏 Acknowledgement
 
 - LLM training/inference stack is built on [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory).
-- Thanks to open-source PyTorch and graph-learning communities.
+- Our datasets are from [LLM4HeG](https://github.com/honey0219/LLM4HeG).
+- Our prompts and method design reference [LLM4RGNN](https://github.com/zhongjian-zhang/LLM4RGNN).
