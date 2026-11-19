@@ -1,10 +1,6 @@
-<h1 align="center">SemFuse</h1>
-
-<p align="center">
-  <strong>Aligning LLM Semantics with Graph Topology for Heterophilic Learning</strong>
-  <br>
-  <img src="https://readme-typing-svg.demolab.com/?font=Fira+Code&amp;size=21&amp;duration=2600&amp;pause=1200&amp;color=0E8A88&amp;center=true&amp;vCenter=true&amp;repeat=false&amp;width=820&amp;height=42&amp;lines=LLM+semantics+%2B+graph+topology;Refine+edges+%E2%86%92+Fuse+graph+views" width="820" alt="Use LLM semantics to refine edges, then fuse the graph views.">
-</p>
+<h1 align="center">
+  <img src="./images/readme/semfuse-banner.gif" width="100%" alt="SemFuse: Aligning LLM Semantics with Graph Topology for Heterophilic Learning">
+</h1>
 
 <p align="center">
   <strong>Zuoxiang Zhao</strong> · <strong>Shuhan Song</strong><sup>*</sup> · <strong>Yuan Zhang</strong> · <strong>Xiping Liu</strong> · <strong>Da Wang</strong> · <strong>Huawei Cao</strong>
@@ -53,7 +49,23 @@ This repository accompanies the paper published at the **31st International Conf
 
 ## 📊 Experiments
 
-The paper reports an average **2.02% improvement in node classification accuracy** over prior state-of-the-art methods across heterophilic benchmarks. The repository provides [Actor, Amazon, Cornell, Texas, and Wisconsin graph files](./dataset), as well as an [original-graph training script](./src/model/gnns_original.py) for comparison. [Published results summary](https://doi.org/10.1007/978-981-92-0375-8_20)
+### Node classification
+
+**SemFuse-GraphSAGE** reaches **78.26%** mean accuracy across Cornell, Texas, Wisconsin, Actor, and Amazon, **2.02 percentage points** above LLM4HeG (76.24%). Table 1 compares SemFuse with GCN, GAT, and GraphSAGE backbones against eight baselines. The repository includes the [five graph datasets](./dataset) and an [original-graph training script](./src/model/gnns_original.py) for comparison.
+
+[![Table 1 from the paper. Node classification accuracy across five heterophilic datasets and the mean across datasets.](./images/readme/table-01-node-classification.png)](./images/readme/table-01-node-classification.png)
+
+### Graph and fusion ablation
+
+Figure 3 compares four configurations for GCN and GraphSAGE: the original graph, the semantic graph alone, addition fusion, and attention fusion. The relative performance of the two fusion variants varies across datasets.
+
+[![Figure 3 from the paper. Grouped accuracy bars compare original-only, semantic-only, addition fusion, and attention fusion for GCN and GraphSAGE.](./images/readme/figure-03-ablation.png)](./images/readme/figure-03-ablation.png)
+
+### Edge relevance and threshold sensitivity
+
+Figure 4 shows the LLM relevance scores for candidate edges retrieved via cosine similarity. The two heatmaps show how accuracy on Wisconsin varies with the deletion and addition thresholds for GCN and GraphSAGE.
+
+[![Figure 4 from the paper. A relevance-score distribution across five datasets and two accuracy heatmaps for the edge addition and deletion thresholds on Wisconsin.](./images/readme/figure-04-sensitivity.png)](./images/readme/figure-04-sensitivity.png)
 
 <a name="quick-start"></a>
 
